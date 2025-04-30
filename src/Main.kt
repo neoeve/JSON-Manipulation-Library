@@ -83,15 +83,14 @@ class ValidationVisitor : JsonVisitor {
     }
 }
 
-// Example usage:
 fun main() {
     val json = JsonObject(
         mapOf(
-            "name" to JsonString("Alice"),
-            "age" to JsonNumber(30),
-            "isStudent" to JsonBoolean(false),
+            "name" to JsonString("Catarina"),
+            "age" to JsonNumber(37),
+            "isStudent" to JsonBoolean(true),
             "scores" to JsonArray(
-                listOf(JsonNumber(85), JsonNumber(90), JsonNumber(95))
+                listOf(JsonNumber(15), JsonNumber(14), JsonNumber(18))
             )
         )
     )

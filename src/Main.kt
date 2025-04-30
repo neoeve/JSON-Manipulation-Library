@@ -8,6 +8,8 @@ class JsonNull : JsonValue() {
     override fun stringify() = "null"
 }
 
+//Comment
+
 class JsonBoolean(val value: Boolean) : JsonValue() {
     override fun accept(visitor: JsonVisitor) = visitor.visitBoolean(this)
     override fun stringify() = value.toString()

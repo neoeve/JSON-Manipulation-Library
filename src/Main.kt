@@ -1,14 +1,104 @@
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-fun main() {
-    val name = "Kotlin"
-    //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-    // to see how IntelliJ IDEA suggests fixing it.
-    println("Hello, " + name + "!")
+sealed class JsonValue {
+    abstract fun accept(visitor: JsonVisitor): Boolean
+    abstract fun stringify(): String
+}
 
-    for (i in 1..5) {
-        //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-        // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-        println("i = $i")
+class JsonNull : JsonValue() {
+    override fun accept(visitor: JsonVisitor) = visitor.visitNull(this)
+    override fun stringify() = "null"
+}
+
+class JsonBoolean(val value: Boolean) : JsonValue() {
+    override fun accept(visitor: JsonVisitor) = visitor.visitBoolean(this)
+    override fun stringify() = value.toString()
+}
+
+class JsonNumber(val value: Number) : JsonValue() {
+    override fun accept(visitor: JsonVisitor) = visitor.visitNumber(this)
+    override fun stringify() = value.toString()
+}
+
+class JsonString(val value: String) : JsonValue() {
+    override fun accept(visitor: JsonVisitor) = visitor.visitString(this)
+    override fun stringify() = "\"${value.replace("\"", "\\\"")}\""
+}
+
+class JsonArray(private val elements: List<JsonValue>) : JsonValue() {
+    val values: List<JsonValue> get() = elements.toList()
+
+    fun map(transform: (JsonValue) -> JsonValue): JsonArray =
+        JsonArray(elements.map(transform))
+
+    fun filter(predicate: (JsonValue) -> Boolean): JsonArray =
+        JsonArray(elements.filter(predicate))
+
+    override fun accept(visitor: JsonVisitor): Boolean =
+        visitor.visitArray(this)
+
+    override fun stringify(): String =
+        elements.joinToString(prefix = "[", postfix = "]") { it.stringify() }
+}
+
+class JsonObject(private val members: Map<String, JsonValue>) : JsonValue() {
+    val entries: Map<String, JsonValue> get() = members.toMap()
+
+    fun filter(predicate: (Map.Entry<String, JsonValue>) -> Boolean): JsonObject =
+        JsonObject(members.filter(predicate))
+
+    override fun accept(visitor: JsonVisitor): Boolean =
+        visitor.visitObject(this)
+
+    override fun stringify(): String =
+        members.entries.joinToString(prefix = "{", postfix = "}") {
+            "\"${it.key}\":${it.value.stringify()}"
+        }
+}
+
+interface JsonVisitor {
+    fun visitNull(value: JsonNull): Boolean
+    fun visitBoolean(value: JsonBoolean): Boolean
+    fun visitNumber(value: JsonNumber): Boolean
+    fun visitString(value: JsonString): Boolean
+    fun visitArray(value: JsonArray): Boolean
+    fun visitObject(value: JsonObject): Boolean
+}
+
+class ValidationVisitor : JsonVisitor {
+    override fun visitNull(value: JsonNull) = true
+    override fun visitBoolean(value: JsonBoolean) = true
+    override fun visitNumber(value: JsonNumber) = true
+    override fun visitString(value: JsonString) = true
+
+    override fun visitArray(value: JsonArray): Boolean {
+        if (value.values.isEmpty()) return true
+        val firstType = value.values.first()::class
+        return value.values.all { it::class == firstType && it.accept(this) }
     }
+
+    override fun visitObject(value: JsonObject): Boolean {
+        val keys = mutableSetOf<String>()
+        return value.entries.all { (k, v) ->
+            keys.add(k) && v.accept(this)
+        }
+    }
+}
+
+// Example usage:
+fun main() {
+    val json = JsonObject(
+        mapOf(
+            "name" to JsonString("Alice"),
+            "age" to JsonNumber(30),
+            "isStudent" to JsonBoolean(false),
+            "scores" to JsonArray(
+                listOf(JsonNumber(85), JsonNumber(90), JsonNumber(95))
+            )
+        )
+    )
+
+    println("Serialized: ${json.stringify()}")
+    println("Is valid: ${json.accept(ValidationVisitor())}")
+
+    val filtered = json.filter { it.key != "age" }
+    println("Filtered: ${filtered.stringify()}")
 }

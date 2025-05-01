@@ -54,41 +54,151 @@ fun JsonValue.accept(visitor: (JsonValue) -> Unit) {
     }
 }
 
-fun JsonValue.stringify(): String =
-    when (this) {
-        is JsonNull -> "null"
-        is JsonBoolean -> value.toString()
-        is JsonNumber -> value.toString()
-        is JsonString -> "\"${value.replace("\"", "\\\"")}\""
-        is JsonArray -> values.joinToString(prefix = "[", postfix = "]") { it.stringify() }
-        is JsonObject -> entries.entries.joinToString(prefix = "{", postfix = "}") { "\"${it.key}\":${it.value.stringify()}"}
+fun JsonValue.validate(): Boolean {
+    return this.validateObjects() && this.validateArrays()
 }
 
-fun JsonValue.validate(): Boolean {
+fun JsonValue.validateObjects(): Boolean {
     var isValid = true
     val visitedKeys = mutableSetOf<String>()
 
     this.accept { value ->
-        when (value) {
-            is JsonObject -> {
-                if (!visitedKeys.addAll(value.members.keys)) {
-                    isValid = false
-                }
+        if (value is JsonObject) {
+            if (!visitedKeys.addAll(value.members.keys)) {
+                isValid = false
             }
-            is JsonArray -> {
-                if (value.values.isNotEmpty()) {
-                    val firstType = value.values.first()::class
-                    if (!value.values.all { it::class == firstType }) {
-                        isValid = false
-                    }
-                }
-            }
-
-            is JsonBoolean, is JsonNull, is JsonNumber, is JsonString -> {}
         }
     }
 
     return isValid
+}
+
+fun JsonValue.validateArrays(): Boolean {
+    var isValid = true
+
+    this.accept { value ->
+        if (value is JsonArray) {
+            if (value.values.isNotEmpty()) {
+                val firstType = value.values.first()::class
+                if (!value.values.all { it::class == firstType }) {
+                    isValid = false
+                }
+            }
+        }
+    }
+
+    return isValid
+}
+
+interface Printer {
+    fun print(text: String)
+    fun newLine()
+    override fun toString(): String
+}
+
+class StringPrinter : Printer   {
+    private val builder = StringBuilder()
+
+    override fun print(text: String) {
+        builder.append(text)
+    }
+
+    override fun newLine() {
+        builder.append("\n")
+    }
+
+    override fun toString(): String = builder.toString()
+}
+
+/** Generalizar com função de entrada? */
+
+class CurlyBracketDecorator(val printer: Printer) : Printer {
+    override fun print(text: String) {
+        printer.print("{${text}}")
+    }
+    override fun newLine() {
+        printer.newLine()
+    }
+    override fun toString(): String = printer.toString()
+}
+
+class QuoteDecorator(val printer: Printer) : Printer {
+    override fun print(text: String) {
+        printer.print("\"$text\"")
+    }
+    override fun newLine() {
+        printer.newLine()
+    }
+    override fun toString(): String = printer.toString()
+}
+
+class SquareBracketDecorator(val printer: Printer) : Printer {
+    override fun print(text: String) {
+        printer.print("[${text}]")
+    }
+    override fun newLine() {
+        printer.newLine()
+    }
+    override fun toString(): String = printer.toString()
+}
+
+class ColonDecorator(val printer: Printer) : Printer {
+    fun printPair(key: String, value: JsonValue) {
+        val quotedKey = QuoteDecorator(printer)
+        quotedKey.print(key)
+        printer.print(":")
+        value.stringify(printer)
+    }
+
+    override fun print(text: String) { printer.print(text) }
+    override fun newLine() { printer.newLine() }
+    override fun toString(): String = printer.toString()
+}
+
+class CommaDecorator(val printer: Printer) : Printer {
+    private var first = true
+    override fun print(text: String) {
+        if (!first) printer.print(",")
+        printer.print(text)
+        first = false
+    }
+    override fun newLine() = printer.newLine()
+    override fun toString(): String = printer.toString()
+}
+
+fun JsonValue.stringify(printer: Printer = StringPrinter()): String {
+    when (this) {
+        is JsonNull -> printer.print("null")
+        is JsonBoolean -> printer.print(value.toString())
+        is JsonNumber -> printer.print(value.toString())
+        is JsonString -> {
+            val quoted = QuoteDecorator(printer)
+            quoted.print(value.replace("\"", "\\\""))
+        }
+
+        is JsonArray -> {
+            val inner = StringPrinter()
+            val commaPrinter = CommaDecorator(inner)
+            values.forEach { it.stringify(commaPrinter) }
+            val square = SquareBracketDecorator(printer)
+            square.print(inner.toString())
+        }
+
+        is JsonObject -> {
+            val inner = StringPrinter()
+            val commaPrinter = CommaDecorator(inner)
+            entries.forEach { (key, value) ->
+                val colonPrinter = StringPrinter()
+                val colon = ColonDecorator(colonPrinter)
+                colon.printPair(key, value)
+                commaPrinter.print(colonPrinter.toString())
+            }
+            val curly = CurlyBracketDecorator(printer)
+            curly.print(inner.toString())
+        }
+    }
+
+    return printer.toString()
 }
 
 fun main() {
@@ -103,22 +213,8 @@ fun main() {
         )
     )
 
+    println("Is valid: ${json.validate()}")
     println("Serialized: ${json.stringify()}")
-    val filtered = json.filter { it.key != "age" }
-    println("Filtered: ${filtered.stringify()}")
-
-    val scores = json.entries["scores"]
-    if (scores is JsonArray) {
-        val incrementedScores = scores.map {
-            if (it is JsonNumber) JsonNumber(it.value.toInt() + 1) else it
-        }
-        println("Mapped scores: ${incrementedScores.stringify()}")
-
-        val highScores = scores.filter {
-            it is JsonNumber && it.value.toInt() > 85
-        }
-        println("Filtered scores: ${highScores.stringify()}")
-    }
 
     JsonTests()
 }

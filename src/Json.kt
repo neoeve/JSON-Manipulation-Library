@@ -60,11 +60,11 @@ fun JsonValue.validate(): Boolean {
 
 fun JsonValue.validateObjects(): Boolean {
     var isValid = true
-    val visitedKeys = mutableSetOf<String>()
 
     this.accept { value ->
         if (value is JsonObject) {
-            if (!visitedKeys.addAll(value.members.keys)) {
+            val keys = value.members.keys
+            if (keys.size != keys.toSet().size) {
                 isValid = false
             }
         }
@@ -216,5 +216,6 @@ fun main() {
     println("Is valid: ${json.validate()}")
     println("Serialized: ${json.stringify()}")
 
-    JsonTests()
+    val filtered = json.filter { it.key != "age" }
+    println("Filtered: ${filtered.stringify()}")
 }

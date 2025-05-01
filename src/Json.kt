@@ -167,7 +167,8 @@ class StringPrinter : Printer   {
     override fun toString(): String = builder.toString()
 }
 
-/** Generalizar com função de entrada? */
+/* Generalizar decoradores abaixo numa unica função que aceita uma função de entrada? */
+
 /**
  * Decorator that wraps output with curly brackets `{ ... }`.
  */
@@ -180,6 +181,7 @@ class CurlyBracketDecorator(val printer: Printer) : Printer {
     }
     override fun toString(): String = printer.toString()
 }
+
 /**
  * Decorator that wraps output with quotes `\...\`.
  */
@@ -281,6 +283,7 @@ fun JsonValue.stringify(printer: Printer = StringPrinter()): String {
     return printer.toString()
 }
 
+/** Testes generalizados **/
 fun main() {
     val json = JsonObject(
         mapOf(

@@ -81,5 +81,4 @@ Developed as part of the **Advanced Programming** course, Master in computer eng
 
 Students:
 - Catarina Loureiro
-- Alexandre Pereira
-
+- Alexandre Rodrigues

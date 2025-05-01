@@ -1,36 +1,73 @@
+/**
+ * Base sealed class representing any JSON value.
+ */
 sealed class JsonValue
 
+/**
+ * Represents a JSON object (key-value pairs).
+ * @property members map of keys to JSON values.
+ */
 class JsonObject(
     val members: Map<String, JsonValue>
 ) : JsonValue() {
 
+    /**
+     * Exposes a defensive copy of the members.
+     */
     val entries: Map<String, JsonValue> get() = members.toMap()
 
+    /**
+     * Filters key-value pairs based on the given predicate.
+     * @return a new JsonObject with filtered entries.
+     */
     fun filter(predicate: (Map.Entry<String, JsonValue>) -> Boolean): JsonObject =
         JsonObject(members.filter(predicate))
 }
 
+/**
+ * Represents a JSON array (ordered list of JSON values).
+ * @property elements list of JSON values.
+ */
 class JsonArray(
     val elements: List<JsonValue>
 ) : JsonValue() {
 
+    /**
+     * Returns a copy of the elements.
+     */
     val values: List<JsonValue> get() = elements.toList()
 
+    /**
+     * Applies a transformation to each element.
+     * @return a new JsonArray with transformed elements.
+     */
     fun map(transform: (JsonValue) -> JsonValue): JsonArray =
         JsonArray(elements.map(transform))
 
+    /**
+     * Filters elements based on the given predicate.
+     * @return a new JsonArray with filtered elements.
+     */
     fun filter(predicate: (JsonValue) -> Boolean): JsonArray =
         JsonArray(elements.filter(predicate))
 }
 
+/** Represents a JSON boolean value. */
 class JsonBoolean(val value: Boolean) : JsonValue()
 
+/** Represents a JSON number. */
 class JsonNumber(val value: Number) : JsonValue()
 
+/** Represents a JSON string. */
 class JsonString(val value: String) : JsonValue()
 
+/** Represents a JSON null value. */
 class JsonNull : JsonValue()
 
+/**
+ * Recursively visits each node in the JSON structure, applying the given visitor function.
+ * @param visitor function to apply to each JsonValue in the tree.
+ */
 fun JsonValue.accept(visitor: (JsonValue) -> Unit) {
     when (this) {
         is JsonBoolean -> visitor(this)
@@ -54,10 +91,20 @@ fun JsonValue.accept(visitor: (JsonValue) -> Unit) {
     }
 }
 
+/**
+ * Validates the current JSON structure for:
+ * - Unique keys in each object
+ * - Homogeneous types in arrays
+ * @return true if the structure is valid
+ */
 fun JsonValue.validate(): Boolean {
     return this.validateObjects() && this.validateArrays()
 }
 
+/**
+ * Validates that all objects have unique keys.
+ * @return true if all objects are valid
+ */
 fun JsonValue.validateObjects(): Boolean {
     var isValid = true
 
@@ -73,6 +120,10 @@ fun JsonValue.validateObjects(): Boolean {
     return isValid
 }
 
+/**
+ * Validates that all arrays contain only values of the same type (if not empty).
+ * @return true if all arrays are homogeneous
+ */
 fun JsonValue.validateArrays(): Boolean {
     var isValid = true
 
@@ -90,12 +141,18 @@ fun JsonValue.validateArrays(): Boolean {
     return isValid
 }
 
+/**
+ * Interface for printing JSON components with optional formatting or decoration.
+ */
 interface Printer {
     fun print(text: String)
     fun newLine()
     override fun toString(): String
 }
 
+/**
+ * A Printer implementation that accumulates printed output into a StringBuilder.
+ */
 class StringPrinter : Printer   {
     private val builder = StringBuilder()
 
@@ -111,7 +168,9 @@ class StringPrinter : Printer   {
 }
 
 /** Generalizar com função de entrada? */
-
+/**
+ * Decorator that wraps output with curly brackets `{ ... }`.
+ */
 class CurlyBracketDecorator(val printer: Printer) : Printer {
     override fun print(text: String) {
         printer.print("{${text}}")
@@ -121,7 +180,9 @@ class CurlyBracketDecorator(val printer: Printer) : Printer {
     }
     override fun toString(): String = printer.toString()
 }
-
+/**
+ * Decorator that wraps output with quotes `\...\`.
+ */
 class QuoteDecorator(val printer: Printer) : Printer {
     override fun print(text: String) {
         printer.print("\"$text\"")
@@ -132,6 +193,9 @@ class QuoteDecorator(val printer: Printer) : Printer {
     override fun toString(): String = printer.toString()
 }
 
+/**
+ * Decorator that wraps output with square brackets `[ ... ]`.
+ */
 class SquareBracketDecorator(val printer: Printer) : Printer {
     override fun print(text: String) {
         printer.print("[${text}]")
@@ -141,8 +205,16 @@ class SquareBracketDecorator(val printer: Printer) : Printer {
     }
     override fun toString(): String = printer.toString()
 }
-
+/**
+ * Decorator responsible for printing key-value pairs in JSON format.
+ */
 class ColonDecorator(val printer: Printer) : Printer {
+
+    /**
+     * Prints a key-value pair with JSON formatting: `"key":value`
+     * @param key the string key
+     * @param value the associated JsonValue
+     */
     fun printPair(key: String, value: JsonValue) {
         val quotedKey = QuoteDecorator(printer)
         quotedKey.print(key)
@@ -155,6 +227,9 @@ class ColonDecorator(val printer: Printer) : Printer {
     override fun toString(): String = printer.toString()
 }
 
+/**
+ * Decorator that inserts commas between printed values.
+ */
 class CommaDecorator(val printer: Printer) : Printer {
     private var first = true
     override fun print(text: String) {
@@ -166,6 +241,11 @@ class CommaDecorator(val printer: Printer) : Printer {
     override fun toString(): String = printer.toString()
 }
 
+/**
+ * Serializes a JsonValue into a JSON-compliant string using decorators.
+ * @param printer optional custom printer for output formatting
+ * @return a valid JSON string
+ */
 fun JsonValue.stringify(printer: Printer = StringPrinter()): String {
     when (this) {
         is JsonNull -> printer.print("null")

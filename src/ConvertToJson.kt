@@ -1,10 +1,11 @@
 fun convertToJson(obj: Any?): JsonValue {
     return when (obj) {
-        null -> JsonNull()
-        is String -> JsonString(obj)
         is Int, is Double -> JsonNumber(obj as Number)
         is Boolean -> JsonBoolean(obj)
+        is String -> JsonString(obj)
         is List<*> -> JsonArray(obj.map { convertToJson(it) })
+        is Enum<*> -> JsonString(obj.name)
+        null -> JsonNull()
         is Map<*, *> -> {
             val converted = obj.entries.associate { (k, v) ->
                 require(k is String) { "Map keys must be Strings" }
@@ -12,7 +13,6 @@ fun convertToJson(obj: Any?): JsonValue {
             }
             JsonObject(converted)
         }
-        is Enum<*> -> JsonString(obj.name)
         else -> {
             val fields = obj.javaClass.declaredFields
             val map = mutableMapOf<String, JsonValue>()

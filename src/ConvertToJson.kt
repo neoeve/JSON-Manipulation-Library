@@ -1,3 +1,5 @@
+import kotlin.reflect.full.*
+
 fun convertToJson(obj: Any?): JsonValue {
     return when (obj) {
         is Int, is Double -> JsonNumber(obj as Number)
@@ -14,16 +16,17 @@ fun convertToJson(obj: Any?): JsonValue {
             JsonObject(converted)
         }
         else -> {
-            val fields = obj.javaClass.declaredFields
-            val map = mutableMapOf<String, JsonValue>()
-
-            for (field in fields) {
-                field.isAccessible = true
-                val value = field.get(obj)
-                map[field.name] = convertToJson(value)
+            val kClass = obj::class
+            val propsByName = kClass.memberProperties.associateBy { it.name }
+            val constructorParams = kClass.primaryConstructor?.parameters ?: emptyList()
+            val orderedMap = linkedMapOf<String, JsonValue>()
+            for (param in constructorParams) {
+                val name = param.name ?: continue
+                val prop = propsByName[name] ?: continue
+                val value = prop.call(obj)
+                orderedMap[name] = convertToJson(value)
             }
-
-            JsonObject(map)
+            JsonObject(orderedMap)
         }
     }
 }

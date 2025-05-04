@@ -15,13 +15,25 @@ annotation class Path
 annotation class Param
 
 class GetJson(vararg controllers: KClass<*>) {
-    private val controllers = controllers.toList()
-    private val routeMap = mutableMapOf<Regex, RouteHandler>()
+    private val routeMap = mutableMapOf<Regex, Route>()
+
+    init {
+        controllers.forEach { controller ->
+            val basePath = controller.findAnnotation<Mapping>()?.value?.trim('/') ?: ""
+            val instance = controller.createInstance()
+
+            controller.memberFunctions.forEach { method ->
+                val methodPath = method.findAnnotation<Mapping>()?.value?.trim('/') ?: return@forEach
+                val fullPath = "/$basePath/$methodPath".replace("//", "/")
+                val pathVars = Regex("\\{([^}]+)}").findAll(fullPath).map { it.groupValues[1] }.toList()
+                val pattern = Regex("^" + fullPath.replace(Regex("\\{[^}]+}"), "([^/]+)") + "$")
+                routeMap[pattern] = Route(pattern, pathVars, instance, method)
+            }
+        }
+    }
 
     fun start(port: Int) {
         val server = HttpServer.create(InetSocketAddress(port), 0)
-        controllers.forEach { registerController(it) }
-
         server.createContext("/") { exchange ->
             if (exchange.requestMethod != "GET") {
                 exchange.sendResponseHeaders(405, 0)
@@ -30,24 +42,20 @@ class GetJson(vararg controllers: KClass<*>) {
             }
 
             val path = exchange.requestURI.path
-            val handlerEntry = routeMap.entries.firstOrNull { (regex, _) ->
-                regex.matches(path)
-            }
-
-            if (handlerEntry == null) {
+            val route = routeMap.entries.firstOrNull { it.key.matches(path) }?.value
+            if (route == null) {
                 exchange.sendResponseHeaders(404, 0)
                 exchange.responseBody.write("Not Found".toByteArray())
                 exchange.responseBody.close()
                 return@createContext
             }
 
-            val handler = handlerEntry.value
-
             try {
-                val response = handler.handle(exchange)
-                val responseBody = response.stringify().toByteArray()
-                exchange.sendResponseHeaders(200, responseBody.size.toLong())
-                exchange.responseBody.write(responseBody)
+                val args = buildArgs(route, exchange)
+                val result = route.function.call(*args.toTypedArray())
+                val response = convertToJson(result).stringify().toByteArray()
+                exchange.sendResponseHeaders(200, response.size.toLong())
+                exchange.responseBody.write(response)
             } catch (e: Exception) {
                 e.printStackTrace()
                 exchange.sendResponseHeaders(500, 0)
@@ -62,81 +70,38 @@ class GetJson(vararg controllers: KClass<*>) {
         server.start()
     }
 
-    private fun registerController(controllerKClass: KClass<*>) {
-        val basePath = controllerKClass.findAnnotation<Mapping>()?.value?.trim('/') ?: ""
-        val controllerInstance = controllerKClass.createInstance()
-
-        for (method in controllerKClass.memberFunctions) {
-            val methodPath = method.findAnnotation<Mapping>()?.value?.trim('/') ?: continue
-            val fullPath = "/$basePath/$methodPath".replace("//", "/")
-
-            val route = buildRoute(fullPath)
-            routeMap[route.pattern] = RouteHandler(route, method, controllerInstance)
-        }
-    }
-
-    private fun buildRoute(path: String): Route {
-        val regexStr = path.replace(Regex("\\{([^}]+)}")) { "([^/]+)" }
-        val paramNames = Regex("\\{([^}]+)}").findAll(path).map { it.groupValues[1] }.toList()
-        return Route(Regex("^$regexStr$"), paramNames)
-    }
-}
-
-data class Route(val pattern: Regex, val pathVars: List<String>)
-
-class RouteHandler(
-    val route: Route,
-    val function: KFunction<*>,
-    val instance: Any
-) {
-    fun handle(exchange: HttpExchange): JsonValue {
+    private fun buildArgs(route: Route, exchange: HttpExchange): List<Any?> {
         val path = exchange.requestURI.path
         val query = exchange.requestURI.rawQuery ?: ""
+        val pathValues = route.pattern.matchEntire(path)?.groupValues?.drop(1) ?: emptyList()
+        val queryParams = query.split("&").mapNotNull {
+            val parts = it.split("=")
+            if (parts.size == 2) URLDecoder.decode(parts[0], "UTF-8") to URLDecoder.decode(parts[1], "UTF-8") else null
+        }.toMap()
 
-        val pathValues = route.pattern.matchEntire(path)
-            ?.groupValues?.drop(1)
-            ?: throw IllegalArgumentException("Path mismatch")
-
-        val queryParams = parseQueryParams(query)
-
-        val args = function.parameters.map { param ->
+        return route.function.parameters.map { param ->
             when {
-                param.kind == KParameter.Kind.INSTANCE -> instance
-                param.hasAnnotation<Path>() -> {
-                    val name = param.name!!
-                    val index = route.pathVars.indexOf(name)
-                    pathValues[index]
-                }
-                param.hasAnnotation<Param>() -> {
-                    val name = param.name!!
-                    val raw = queryParams[name] ?: error("Missing param: $name")
-                    castParam(raw, param.type)
-                }
+                param.kind == KParameter.Kind.INSTANCE -> route.instance
+                param.hasAnnotation<Path>() -> pathValues[route.pathVars.indexOf(param.name!!)]
+                param.hasAnnotation<Param>() -> cast(queryParams[param.name] ?: error("Missing param: ${param.name}"), param.type)
                 else -> null
             }
         }
-
-        val result = function.call(*args.toTypedArray())
-        return convertToJson(result)
     }
 
-    private fun castParam(value: String, type: KType): Any {
-        return when (type.classifier) {
-            Int::class -> value.toInt()
-            Double::class -> value.toDouble()
-            Boolean::class -> value.toBoolean()
-            else -> value
-        }
+    private fun cast(value: String, type: KType): Any = when (type.classifier) {
+        Int::class -> value.toInt()
+        Double::class -> value.toDouble()
+        Boolean::class -> value.toBoolean()
+        else -> value
     }
 
-    private fun parseQueryParams(query: String): Map<String, String> {
-        return query.split("&").mapNotNull {
-            val parts = it.split("=")
-            if (parts.size == 2)
-                URLDecoder.decode(parts[0], "UTF-8") to URLDecoder.decode(parts[1], "UTF-8")
-            else null
-        }.toMap()
-    }
+    data class Route(
+        val pattern: Regex,
+        val pathVars: List<String>,
+        val instance: Any,
+        val function: KFunction<*>
+    )
 }
 
 @Mapping("api")

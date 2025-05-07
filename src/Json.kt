@@ -1,15 +1,16 @@
 /**
  * Base sealed class representing any JSON value.
  */
-sealed class JsonValue
+interface JsonValue
 
 /**
  * Represents a JSON object (key-value pairs).
  * @property members map of keys to JSON values.
  */
-class JsonObject(
+data class JsonObject(
     val members: Map<String, JsonValue>
-) : JsonValue() {
+)
+    : JsonValue {
 
     /**
      * Exposes a defensive copy of the members.
@@ -28,9 +29,9 @@ class JsonObject(
  * Represents a JSON array (ordered list of JSON values).
  * @property elements list of JSON values.
  */
-class JsonArray(
+data class JsonArray(
     val elements: List<JsonValue>
-) : JsonValue() {
+) : JsonValue {
 
     /**
      * Returns a copy of the elements.
@@ -53,16 +54,16 @@ class JsonArray(
 }
 
 /** Represents a JSON boolean value. */
-class JsonBoolean(val value: Boolean) : JsonValue()
+data class JsonBoolean(val value: Boolean) : JsonValue
 
 /** Represents a JSON number. */
-class JsonNumber(val value: Number) : JsonValue()
+data class JsonNumber(val value: Number) : JsonValue
 
 /** Represents a JSON string. */
-class JsonString(val value: String) : JsonValue()
+data class JsonString(val value: String) : JsonValue
 
 /** Represents a JSON null value. */
-class JsonNull : JsonValue()
+data class JsonNull(val ignored: Unit = Unit) : JsonValue
 
 /**
  * Recursively visits each node in the JSON structure, applying the given visitor function.
@@ -281,24 +282,4 @@ fun JsonValue.stringify(printer: Printer = StringPrinter()): String {
     }
 
     return printer.toString()
-}
-
-/** Testes generalizados **/
-fun main() {
-    val json = JsonObject(
-        mapOf(
-            "name" to JsonString("Catarina"),
-            "age" to JsonNumber(37),
-            "isStudent" to JsonBoolean(true),
-            "scores" to JsonArray(
-                listOf(JsonNumber(17), JsonNumber(15), JsonNumber(18))
-            )
-        )
-    )
-
-    println("Is valid: ${json.validate()}")
-    println("Serialized: ${json.stringify()}")
-
-    val filtered = json.filter { it.key != "age" }
-    println("Filtered: ${filtered.stringify()}")
 }

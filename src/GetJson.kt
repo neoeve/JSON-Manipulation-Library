@@ -88,7 +88,7 @@ class GetJson(vararg controllers: KClass<*>) {
         try {
             val args = buildArgs(route, exchange)
             val result = route.function.call(*args.toTypedArray())
-            val response = convertToJson(result).stringify().toByteArray()
+            val response = convertToJson(result).stringify().toByteArray() //usar apenas a instância do JSON model
             exchange.sendResponseHeaders(200, response.size.toLong())
             exchange.responseBody.write(response)
         } catch (e: Exception) {
@@ -161,6 +161,7 @@ class GetJson(vararg controllers: KClass<*>) {
  */
 @Mapping("api")
 class Controller {
+    var id = 0 //Mesmo controlador é mantido
     /**
      * Method mapped to the route '/api/ints'.
      *
@@ -184,7 +185,7 @@ class Controller {
      * @return String with the path variable + "!".
      */
     @Mapping("path/{pathvar}")
-    fun path(@Path pathvar: String): String = "$pathvar!"
+    fun path(@Path pathvar: String): String = pathvar + "!"
 
     /**
      * Method mapped to the route '/api/args'.

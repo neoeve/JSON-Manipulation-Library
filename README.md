@@ -75,6 +75,10 @@ handler.listen(8080)
 // Visit http://localhost:8080 to see the JSON output
 
 ```
+## UML Diagram
+
+![UML](uml/json_UML.png)
+
 ---
 
 ## Technologies

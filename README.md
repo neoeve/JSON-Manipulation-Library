@@ -33,10 +33,12 @@ This Kotlin library provides a functional and extensible model for representing 
 
 ```text
 src/
-├── Json.kt             # Core JSON data model and stringify/validate logic
-├── ConvertToJson.kt    # Converts Kotlin objects to JSON via reflection
-├── GetJson.kt          # Serves JSON over HTTP GET requests
-├── JsonTests.kt        # Unit tests for all features
+├── Json.kt                 # Core JSON data model and stringify/validate logic
+├── ConvertToJson.kt        # Converts Kotlin objects to JSON via reflection
+├── GetJson.kt              # Serves JSON over HTTP GET requests
+├── JsonTests.kt            # Unit tests for JSON data model features
+├── ConvertToJsonTests.kt   # Unit tests for JSON model instantiation from Kotlin objects using reflection
+├── JsonTests.kt            # Unit tests for the HTTP GET framework that serves JSON based on the data model instance
 ```
 
 ---
@@ -57,23 +59,62 @@ println(json.stringify()) // {"name":"Catarina","age":37,"scores":[17,15]}
 ```
 
 ```kotlin
-data class Person(val name: String, val age: Int, val active: Boolean)
+data class Course(
+  val name: String,
+  val credits: Int,
+  val evaluation: List<EvalItem>
+)
 
-val person = Person("Ana", 30, true)
-val json = ConvertToJson().convert(person)
+data class EvalItem(
+  val name: String,
+  val percentage: Double,
+  val mandatory: Boolean,
+  val type: EvalType?
+)
 
+enum class EvalType {
+  TEST, PROJECT, EXAM
+}
+
+val course = Course(
+  "PA", 6, listOf(
+    EvalItem("quizzes", 0.2, false, null),
+    EvalItem("project", 0.8, true, EvalType.PROJECT)
+  )
+)
+
+val json = convertToJson(course)
 println(json.stringify())
-// Output: {"name":"Ana","age":30,"active":true}
+
+// Output: {"name":"PA","credits":6,"evaluation":[{"name":"quizzes","percentage":0.2,"mandatory":false,"type":null},{"name":"project","percentage":0.8,"mandatory":true,"type":"PROJECT"}]}
 ```
 
 ```kotlin
-val handler = GetJson {
-    JsonObject(mapOf("status" to JsonString("ok")))
+@Mapping("api")
+class Controller {
+  @Mapping("ints")
+  fun demo(): List<Int> = listOf(1, 2, 3)
+
+  @Mapping("pair")
+  fun obj(): Pair<String, String> = "um" to "dois"
+  
+  @Mapping("path/{pathvar}")
+  fun path(@Path pathvar: String): String = pathvar + "!"
+  
+  @Mapping("args")
+  fun args(@Param n: Int, @Param text: String): Map<String, String> = mapOf(text to text.repeat(n))
 }
 
-handler.listen(8080)
+val app = GetJson(Controller::class)
+app.start(8080)
+
 // Visit http://localhost:8080 to see the JSON output
 
+//URL: http://localhost:8080/api/ints             -> Response: [1, 2, 3]
+//URL: http://localhost:8080/api/pair             -> Response: {"first":"um","second":"dois"}
+//URL: http://localhost:8080/api/path/a           -> Response: "a!"
+//URL: http://localhost:8080/api/path/b           -> Response: "b!"
+//URL: http://localhost:8080/api/args?n=3&text=PA -> Response: {"PA":"PAPAPA"}
 ```
 ## UML Diagram
 
@@ -86,7 +127,7 @@ handler.listen(8080)
 - **Language**: Kotlin
 - **Testing**: JUnit 4
 - **Design Patterns**: Visitor, Decorator, Reflection
-- **I/O**: Embedded HTTP with `ServerSocket`
+- **I/O**: Embedded HTTP server using `com.sun.net.httpserver.HttpServer` with Kotlin reflection-based routing
 
 ---
 

@@ -1,5 +1,15 @@
 import kotlin.reflect.full.*
 
+/**
+ * Converts a Kotlin object into a JSON model.
+ * Supports Kotlin types: Int, Double, Boolean, String, List, Enums,
+ * null, data classes with properties whose type is supported and
+ * maps that associate Strings with any of the mentioned types.
+ * Uses Kotlin reflection to inspect the structure of data classes.
+ *
+ * @param obj Kotlin object to convert.
+ * @return Corresponding JsonValue instance.
+ */
 fun convertToJson(obj: Any?): JsonValue {
     return when (obj) {
         is Int, is Double -> JsonNumber(obj as Number)
@@ -29,33 +39,4 @@ fun convertToJson(obj: Any?): JsonValue {
             JsonObject(orderedMap)
         }
     }
-}
-
-data class Course(
-    val name: String,
-    val credits: Int,
-    val evaluation: List<EvalItem>
-)
-
-data class EvalItem(
-    val name: String,
-    val percentage: Double,
-    val mandatory: Boolean,
-    val type: EvalType?
-)
-
-enum class EvalType {
-    TEST, PROJECT, EXAM
-}
-
-fun main() {
-    val course = Course(
-        "PA", 6, listOf(
-            EvalItem("quizzes", 0.2, false, null),
-            EvalItem("project", 0.8, true, EvalType.PROJECT)
-        )
-    )
-
-    val json = convertToJson(course)
-    println(json.stringify())
 }

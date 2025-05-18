@@ -178,12 +178,19 @@ class JsonTests {
             )
         )
 
+        val objexpected = JsonObject(
+            mapOf(
+                "name" to JsonString("Catarina"),
+                "isStudent" to JsonBoolean(true)
+            )
+        )
+
         val filtered = obj.filter { it.key != "age" }
 
         assertEquals(
             "Filtering should remove 'age'",
-            "{\"name\":\"Catarina\",\"isStudent\":true}",
-            filtered.stringify()
+            objexpected,
+            filtered
         )
     }
 

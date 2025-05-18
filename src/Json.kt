@@ -1,15 +1,16 @@
 /**
- * Base sealed class representing any JSON value.
+ * interface representing any JSON value.
  */
-sealed class JsonValue
+interface JsonValue
 
 /**
  * Represents a JSON object (key-value pairs).
  * @property members map of keys to JSON values.
  */
-class JsonObject(
+data class JsonObject(
     val members: Map<String, JsonValue>
-) : JsonValue() {
+)
+    : JsonValue {
 
     /**
      * Exposes a defensive copy of the members.
@@ -28,9 +29,9 @@ class JsonObject(
  * Represents a JSON array (ordered list of JSON values).
  * @property elements list of JSON values.
  */
-class JsonArray(
+data class JsonArray(
     val elements: List<JsonValue>
-) : JsonValue() {
+) : JsonValue {
 
     /**
      * Returns a copy of the elements.
@@ -53,16 +54,16 @@ class JsonArray(
 }
 
 /** Represents a JSON boolean value. */
-class JsonBoolean(val value: Boolean) : JsonValue()
+data class JsonBoolean(val value: Boolean) : JsonValue
 
 /** Represents a JSON number. */
-class JsonNumber(val value: Number) : JsonValue()
+data class JsonNumber(val value: Number) : JsonValue
 
 /** Represents a JSON string. */
-class JsonString(val value: String) : JsonValue()
+data class JsonString(val value: String) : JsonValue
 
 /** Represents a JSON null value. */
-class JsonNull : JsonValue()
+data class JsonNull(val ignored: Unit = Unit) : JsonValue
 
 /**
  * Recursively visits each node in the JSON structure, applying the given visitor function.
@@ -167,84 +168,8 @@ class StringPrinter : Printer   {
     override fun toString(): String = builder.toString()
 }
 
-/* Generalizar decoradores abaixo numa unica função que aceita uma função de entrada? */
-
 /**
- * Decorator that wraps output with curly brackets `{ ... }`.
- */
-class CurlyBracketDecorator(val printer: Printer) : Printer {
-    override fun print(text: String) {
-        printer.print("{${text}}")
-    }
-    override fun newLine() {
-        printer.newLine()
-    }
-    override fun toString(): String = printer.toString()
-}
-
-/**
- * Decorator that wraps output with quotes `\...\`.
- */
-class QuoteDecorator(val printer: Printer) : Printer {
-    override fun print(text: String) {
-        printer.print("\"$text\"")
-    }
-    override fun newLine() {
-        printer.newLine()
-    }
-    override fun toString(): String = printer.toString()
-}
-
-/**
- * Decorator that wraps output with square brackets `[ ... ]`.
- */
-class SquareBracketDecorator(val printer: Printer) : Printer {
-    override fun print(text: String) {
-        printer.print("[${text}]")
-    }
-    override fun newLine() {
-        printer.newLine()
-    }
-    override fun toString(): String = printer.toString()
-}
-/**
- * Decorator responsible for printing key-value pairs in JSON format.
- */
-class ColonDecorator(val printer: Printer) : Printer {
-
-    /**
-     * Prints a key-value pair with JSON formatting: `"key":value`
-     * @param key the string key
-     * @param value the associated JsonValue
-     */
-    fun printPair(key: String, value: JsonValue) {
-        val quotedKey = QuoteDecorator(printer)
-        quotedKey.print(key)
-        printer.print(":")
-        value.stringify(printer)
-    }
-
-    override fun print(text: String) { printer.print(text) }
-    override fun newLine() { printer.newLine() }
-    override fun toString(): String = printer.toString()
-}
-
-/**
- * Decorator that inserts commas between printed values.
- */
-class CommaDecorator(val printer: Printer) : Printer {
-    private var first = true
-    override fun print(text: String) {
-        if (!first) printer.print(",")
-        printer.print(text)
-        first = false
-    }
-    override fun newLine() = printer.newLine()
-    override fun toString(): String = printer.toString()
-}
-
-/**
- * Serializes a JsonValue into a JSON-compliant string using decorators.
+ * Serializes a JsonValue into a JSON-compliant string
  * @param printer optional custom printer for output formatting
  * @return a valid JSON string
  */
@@ -253,52 +178,32 @@ fun JsonValue.stringify(printer: Printer = StringPrinter()): String {
         is JsonNull -> printer.print("null")
         is JsonBoolean -> printer.print(value.toString())
         is JsonNumber -> printer.print(value.toString())
+
         is JsonString -> {
-            val quoted = QuoteDecorator(printer)
-            quoted.print(value.replace("\"", "\\\""))
+            val escaped = value.replace("\"", "\\\"")
+            printer.print("\"$escaped\"")
         }
 
         is JsonArray -> {
-            val inner = StringPrinter()
-            val commaPrinter = CommaDecorator(inner)
-            values.forEach { it.stringify(commaPrinter) }
-            val square = SquareBracketDecorator(printer)
-            square.print(inner.toString())
+            printer.print("[")
+            values.forEachIndexed { index, item ->
+                item.stringify(printer)
+                if (index < values.lastIndex) printer.print(",")
+            }
+            printer.print("]")
         }
 
         is JsonObject -> {
-            val inner = StringPrinter()
-            val commaPrinter = CommaDecorator(inner)
-            entries.forEach { (key, value) ->
-                val colonPrinter = StringPrinter()
-                val colon = ColonDecorator(colonPrinter)
-                colon.printPair(key, value)
-                commaPrinter.print(colonPrinter.toString())
+            printer.print("{")
+            entries.entries.forEachIndexed { index, (key, value) ->
+                val escapedKey = key.replace("\"", "\\\"")
+                printer.print("\"$escapedKey\":")
+                value.stringify(printer)
+                if (index < entries.size - 1) printer.print(",")
             }
-            val curly = CurlyBracketDecorator(printer)
-            curly.print(inner.toString())
+            printer.print("}")
         }
     }
 
     return printer.toString()
-}
-
-/** Testes generalizados **/
-fun main() {
-    val json = JsonObject(
-        mapOf(
-            "name" to JsonString("Catarina"),
-            "age" to JsonNumber(37),
-            "isStudent" to JsonBoolean(true),
-            "scores" to JsonArray(
-                listOf(JsonNumber(17), JsonNumber(15), JsonNumber(18))
-            )
-        )
-    )
-
-    println("Is valid: ${json.validate()}")
-    println("Serialized: ${json.stringify()}")
-
-    val filtered = json.filter { it.key != "age" }
-    println("Filtered: ${filtered.stringify()}")
 }

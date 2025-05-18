@@ -14,7 +14,7 @@ import kotlin.reflect.full.*
 annotation class Mapping(val value: String)
 
 /**
- * Annotation used to mark parameters extracted from the query string.
+ * Annotation used to mark parameters extracted from the path variables.
  */
 @Target(AnnotationTarget.VALUE_PARAMETER)
 annotation class Path
@@ -31,23 +31,28 @@ annotation class Param
  * @param controllers List of controller classes that define the routes and corresponding methods.
  */
 class GetJson(vararg controllers: KClass<*>) {
-    private val routeMap = mutableMapOf<Regex, Route>()
+    private val routeMap = mutableListOf<Route>()
+    private val controllerInstances = mutableMapOf<KClass<*>, Any>()
 
     /**
      * Initializes GetJson instance scanning the controllers
      * and mapping routes based on the 'Mapping' annotation.
      */
     init {
-        for (controller in controllers) {
+        controllers.forEach { controller ->
             val basePath = controller.findAnnotation<Mapping>()?.value?.trim('/') ?: ""
-            val instance = controller.createInstance()
+            val instance = controllerInstances.getOrPut(controller) { controller.createInstance() }
             for (method in controller.memberFunctions) {
-                val methodPath = method.findAnnotation<Mapping>()?.value?.trim('/')
-                if (methodPath == null) continue
-                val fullPath = "/$basePath/$methodPath".replace("//", "/")
-                val pathVars = Regex("\\{([^}]+)}").findAll(fullPath).map { it.groupValues[1] }.toList()
-                val pattern = Regex("^" + fullPath.replace(Regex("\\{[^}]+}"), "([^/]+)") + "$")
-                routeMap[pattern] = Route(pattern, pathVars, instance, method)
+                val mappingAnnotation = method.findAnnotation<Mapping>()
+                if (mappingAnnotation == null) continue
+                val methodPath = mappingAnnotation.value.trim('/')
+                if (methodPath.isEmpty()) continue
+                val fullPath = listOf(basePath, methodPath).filter { it.isNotEmpty() }.joinToString("/")
+                val segments = fullPath.split("/")
+                val pathParamNames = segments.mapNotNull { s ->
+                    if (s.startsWith("{") && s.endsWith("}")) s.drop(1).dropLast(1) else null
+                }
+                routeMap.add(Route(segments, pathParamNames, instance, method))
             }
         }
     }
@@ -60,14 +65,15 @@ class GetJson(vararg controllers: KClass<*>) {
     fun start(port: Int) {
         val server = HttpServer.create(InetSocketAddress(port), 0)
         server.createContext("/") { exchange -> handleRequest(exchange) }
-
         server.executor = null
         println("Server started at http://localhost:$port")
         server.start()
     }
 
     /**
-     * Handles incoming HTTP requests by matching the request path to a route and invoking the corresponding method.
+     * Handles incoming HTTP requests by matching the request path to a route,
+     * building a list of arguments from path and query parameters
+     * and invoking the corresponding controller method.
      *
      * @param exchange HTTP exchange representing the request and response.
      */
@@ -77,18 +83,61 @@ class GetJson(vararg controllers: KClass<*>) {
             exchange.responseBody.close()
             return
         }
-        val path = exchange.requestURI.path
-        val route = routeMap.entries.firstOrNull { it.key.matches(path) }?.value
+
+        val requestPathSegments = exchange.requestURI.path.trim('/').split("/").filter { it.isNotEmpty() }
+        val queryParams = (exchange.requestURI.rawQuery ?: "")
+            .split("&")
+            .mapNotNull {
+                val parts = it.split("=")
+                if (parts.size == 2) {
+                    URLDecoder.decode(parts[0], "UTF-8") to URLDecoder.decode(parts[1], "UTF-8")
+                } else null
+            }.toMap()
+        val route = routeMap.firstOrNull { routeSegments ->
+            if (routeSegments.fullPathSegments.size != requestPathSegments.size) {
+                false
+            } else {
+                var match = true
+                for (i in routeSegments.fullPathSegments.indices) {
+                    val r = routeSegments.fullPathSegments[i]
+                    val req = requestPathSegments[i]
+                    if (!(r.startsWith("{") && r.endsWith("}")) && r != req) {
+                        match = false
+                        break
+                    }
+                }
+                match
+            }
+        }
+
         if (route == null) {
             exchange.sendResponseHeaders(404, 0)
             exchange.responseBody.write("Not Found".toByteArray())
             exchange.responseBody.close()
             return
         }
+
         try {
-            val args = buildArgs(route, exchange)
+            val pathValues = mutableMapOf<String, String>()
+            for (i in route.fullPathSegments.indices) {
+                val r = route.fullPathSegments[i]
+                val req = requestPathSegments[i]
+                if (r.startsWith("{") && r.endsWith("}")) {
+                    pathValues[r.drop(1).dropLast(1)] = req
+                }
+            }
+            val args = route.function.parameters.map { param ->
+                when {
+                    param.kind == KParameter.Kind.INSTANCE -> route.instance
+                    param.hasAnnotation<Path>() -> pathValues[param.name]
+                        ?: error("Missing path var: ${param.name}")
+                    param.hasAnnotation<Param>() -> cast(queryParams[param.name]
+                        ?: error("Missing query param: ${param.name}"), param.type)
+                    else -> null
+                }
+            }
             val result = route.function.call(*args.toTypedArray())
-            val response = convertToJson(result).stringify().toByteArray() //usar apenas a instância do JSON model
+            val response = convertToJson(result).stringify().toByteArray()
             exchange.sendResponseHeaders(200, response.size.toLong())
             exchange.responseBody.write(response)
         } catch (e: Exception) {
@@ -97,32 +146,6 @@ class GetJson(vararg controllers: KClass<*>) {
             exchange.responseBody.write("Internal server error".toByteArray())
         } finally {
             exchange.responseBody.close()
-        }
-    }
-
-    /**
-     * Builds a list of arguments for the function based on the route parameters and the request.
-     *
-     * @param route Route corresponding to the current request.
-     * @param exchange HTTP exchange representing the request.
-     * @return List of arguments to pass to the route function.
-     */
-    private fun buildArgs(route: Route, exchange: HttpExchange): List<Any?> {
-        val path = exchange.requestURI.path
-        val query = exchange.requestURI.rawQuery ?: ""
-        val pathValues = route.pattern.matchEntire(path)?.groupValues?.drop(1) ?: emptyList()
-        val queryParams = query.split("&").mapNotNull {
-            val parts = it.split("=")
-            if (parts.size == 2) URLDecoder.decode(parts[0], "UTF-8") to URLDecoder.decode(parts[1], "UTF-8") else null
-        }.toMap()
-
-        return route.function.parameters.map { param ->
-            when {
-                param.kind == KParameter.Kind.INSTANCE -> route.instance
-                param.hasAnnotation<Path>() -> pathValues[route.pathVars.indexOf(param.name!!)]
-                param.hasAnnotation<Param>() -> cast(queryParams[param.name] ?: error("Missing param: ${param.name}"), param.type)
-                else -> null
-            }
         }
     }
 
@@ -141,16 +164,16 @@ class GetJson(vararg controllers: KClass<*>) {
     }
 
     /**
-     * Route in the application with its pattern, path variables, instance and function.
+     * Route in the application with its path segments, path parameter names, instance and function.
      *
-     * @property pattern Regex pattern used to match the request path.
-     * @property pathVars List of path variable names.
+     * @property fullPathSegments List of path segments used to match the request path.
+     * @property pathParamNames List of path parameter names extracted from the segments.
      * @property instance Instance of the controller containing the method.
      * @property function Function to invoke when the route matches.
      */
     data class Route(
-        val pattern: Regex,
-        val pathVars: List<String>,
+        val fullPathSegments: List<String>,
+        val pathParamNames: List<String>,
         val instance: Any,
         val function: KFunction<*>
     )
@@ -161,7 +184,6 @@ class GetJson(vararg controllers: KClass<*>) {
  */
 @Mapping("api")
 class Controller {
-    var id = 0 //Mesmo controlador é mantido
     /**
      * Method mapped to the route '/api/ints'.
      *
@@ -176,7 +198,7 @@ class Controller {
      * @return Pair of strings.
      */
     @Mapping("pair")
-    fun obj(): Pair<String, String> = Pair("um", "dois")
+    fun obj(): Pair<String, String> = "um" to "dois"
 
     /**
      * Method mapped to the route '/api/path/{pathvar}'.
@@ -195,8 +217,7 @@ class Controller {
      * @return Map with the text as a key and the repeated text as a value.
      */
     @Mapping("args")
-    fun args(@Param n: Int, @Param text: String): Map<String, String> =
-        mapOf(text to text.repeat(n))
+    fun args(@Param n: Int, @Param text: String): Map<String, String> = mapOf(text to text.repeat(n))
 }
 
 /**

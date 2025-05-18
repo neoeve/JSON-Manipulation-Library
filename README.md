@@ -77,7 +77,7 @@ handler.listen(8080)
 ```
 ## UML Diagram
 
-![UML](uml/json_UML.png)
+![UML](uml/Json_UML.png)
 
 ---
 

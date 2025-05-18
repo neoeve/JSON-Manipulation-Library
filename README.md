@@ -1,42 +1,47 @@
 # JSON Manipulation Library
 
-## 📌 Overview
+## Overview
 
-This Kotlin library provides a clean and extensible object model for representing and manipulating JSON data programmatically. It supports full composition of JSON structures, functional operations like `map` and `filter`, recursive traversal via visitors, and serialization to valid JSON strings using the **Decorator pattern**.
+This Kotlin library provides a functional and extensible model for representing and manipulating JSON data structures. It includes:
 
----
-
-## ✨ Features
-
-- ✅ **Structured JSON Model**: Represents all standard JSON types (`object`, `array`, `string`, `number`, `boolean`, `null`) using a sealed class hierarchy.
-- 🧪 **Validation**: Verifies object key uniqueness and array type homogeneity.
-- 🧰 **Functional Operations**:
-    - `JsonArray.map(transform)`
-    - `JsonArray.filter(predicate)`
-    - `JsonObject.filter(predicate)`
-- 🔁 **Visitor Support**: Recursive structure traversal via `accept(visitor)` for extensibility.
-- 🧵 **Stringify with Decorators**: Flexible JSON string generation using composable decorators (e.g. quote wrapping, brackets, commas).
-- 💡 **Immutable & Pure**: Operations return new instances without modifying originals.
+- A typed JSON model with sealed classes.
+- Functional operations like `map`, `filter`, and recursive `visitor` traversal.
+- Serialization to JSON strings.
+- Instantiation from Kotlin objects via reflection.
+- An embedded HTTP server that responds with JSON via GET requests.
 
 ---
 
-## 📦 Project Structure
+## Features
 
-| Component       | Description                                |
-|-----------------|--------------------------------------------|
-| `JsonValue`     | Sealed base class for all JSON elements    |
-| `JsonObject`    | Represents JSON objects                    |
-| `JsonArray`     | Represents JSON arrays                     |
-| `JsonString`    | JSON string literal                        |
-| `JsonNumber`    | JSON number (as Kotlin `Number`)           |
-| `JsonBoolean`   | JSON booleans                              |
-| `JsonNull`      | JSON null representation                   |
-| `Printer`       | Interface for controlled output            |
-| `*Decorator`    | Output decorators (e.g. `CommaDecorator`)  |
+- **JSON Type System**: Represents `object`, `array`, `string`, `number`, `boolean`, and `null`.
+- **Validation**:
+  - Arrays must contain homogeneous types.
+  - Objects must have unique keys.
+- **Functional API**:
+  - `JsonObject.filter(predicate)`
+  - `JsonArray.map(transform)`
+  - `JsonArray.filter(predicate)`
+- **Visitor Pattern**: Traverse nested JSON structures recursively.
+- **Serialization**: Convert any `JsonValue` into a valid JSON string.
+- **Reflection-based Instantiation**: Convert Kotlin objects into `JsonValue` automatically.
+- **HTTP GET Server**: Serve JSON dynamically through an embedded web interface.
 
 ---
 
-## ✅ Example
+## Project Structure
+
+```text
+src/
+├── Json.kt             # Core JSON data model and stringify/validate logic
+├── ConvertToJson.kt    # Converts Kotlin objects to JSON via reflection
+├── GetJson.kt          # Serves JSON over HTTP GET requests
+├── JsonTests.kt        # Unit tests for all features
+```
+
+---
+
+## Example
 
 ```kotlin
 val json = JsonObject(
@@ -51,31 +56,37 @@ println(json.validate()) // true
 println(json.stringify()) // {"name":"Catarina","age":37,"scores":[17,15]}
 ```
 
+```kotlin
+data class Person(val name: String, val age: Int, val active: Boolean)
+
+val person = Person("Ana", 30, true)
+val json = ConvertToJson().convert(person)
+
+println(json.stringify())
+// Output: {"name":"Ana","age":30,"active":true}
+```
+
+```kotlin
+val handler = GetJson {
+    JsonObject(mapOf("status" to JsonString("ok")))
+}
+
+handler.listen(8080)
+// Visit http://localhost:8080 to see the JSON output
+
+```
 ---
 
-## 🧪 Tests
-
-The project includes unit tests covering:
-
-- Primitive values (string, number, boolean, null)
-- Arrays and objects
-- Mapping and filtering
-- Nested structures
-- Validation and serialization logic
-
-Tests are organized by category for clarity.
-
----
-
-## 📚 Technologies
+## Technologies
 
 - **Language**: Kotlin
 - **Testing**: JUnit 4
-- **Paradigms**: Functional programming, Object-Oriented Design, Decorator & Visitor Patterns
+- **Design Patterns**: Visitor, Decorator, Reflection
+- **I/O**: Embedded HTTP with `ServerSocket`
 
 ---
 
-## 👩‍💻 Authors
+## Authors
 Developed as part of the **Advanced Programming** course, Master in computer engineering (MEI)
 2024/2025—University Institute of Lisbon (ISCTE)
 

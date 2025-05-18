@@ -86,6 +86,19 @@ class ConvertToJsonTests {
     }
 
     @Test
+    fun testEmptyStringConvert() {
+        val emptyString = convertToJson("")
+        assertEquals("\"\"", emptyString.stringify())
+    }
+
+    @Test
+    fun testEmptyStringEqualValue() {
+        val emptyString1 = convertToJson("")
+        val emptyString2 = convertToJson("")
+        assertEquals("Empty strings don't match", emptyString2, emptyString1)
+    }
+
+    @Test
     fun testListConvert() {
         val list = convertToJson(listOf(18, true, "Hello world!"))
         assertEquals("""[18,true,"Hello world!"]""", list.stringify())
@@ -96,6 +109,19 @@ class ConvertToJsonTests {
         val list1 = convertToJson(listOf(18, true, "Hello world!"))
         val list2 = convertToJson(listOf(18, true, "Hello world!"))
         assertEquals("Strings don't match", list2, list1)
+    }
+
+    @Test
+    fun testEmptyListConvert() {
+        val emptyList = convertToJson(emptyList<Any>())
+        assertEquals("[]", emptyList.stringify())
+    }
+
+    @Test
+    fun testEmptyListEqualValue() {
+        val emptyList1 = convertToJson(emptyList<Any>())
+        val emptyList2 = convertToJson(emptyList<Any>())
+        assertEquals("Empty lists don't match", emptyList2, emptyList1)
     }
 
     @Test
@@ -174,16 +200,160 @@ class ConvertToJsonTests {
     }
 
     @Test
-    fun testMapConvert() {
+    fun testMapWithIntValuesConvert() {
         val map = convertToJson(mapOf("x" to 1, "y" to 2))
         assertEquals("""{"x":1,"y":2}""", map.stringify())
     }
 
     @Test
-    fun testMapEqualValue() {
+    fun testMapWithIntValuesEqual() {
         val map1 = convertToJson(mapOf("x" to 1, "y" to 2))
         val map2 = convertToJson(mapOf("x" to 1, "y" to 2))
-        assertEquals("Maps don't match", map2, map1)
+        assertEquals("Maps with Int values don't match", map2, map1)
+    }
+
+    @Test
+    fun testMapWithDoubleValuesConvert() {
+        val map = convertToJson(mapOf("x" to 9.18, "y" to 18.9))
+        assertEquals("""{"x":9.18,"y":18.9}""", map.stringify())
+    }
+
+    @Test
+    fun testMapWithDoubleValuesEqual() {
+        val map1 = convertToJson(mapOf("x" to 9.18, "y" to 18.9))
+        val map2 = convertToJson(mapOf("x" to 9.18, "y" to 18.9))
+        assertEquals("Maps with Double values don't match", map2, map1)
+    }
+
+    @Test
+    fun testMapWithBooleanValuesConvert() {
+        val map = convertToJson(mapOf("a" to true, "b" to false))
+        assertEquals("""{"a":true,"b":false}""", map.stringify())
+    }
+
+    @Test
+    fun testMapWithBooleanValuesEqual() {
+        val map1 = convertToJson(mapOf("a" to true, "b" to false))
+        val map2 = convertToJson(mapOf("a" to true, "b" to false))
+        assertEquals("Maps with Boolean values don't match", map2, map1)
+    }
+
+    @Test
+    fun testMapWithStringValuesConvert() {
+        val map = convertToJson(mapOf("a" to "aa", "b" to "bb"))
+        assertEquals("""{"a":"aa","b":"bb"}""", map.stringify())
+    }
+
+    @Test
+    fun testMapWithStringValuesEqual() {
+        val map1 = convertToJson(mapOf("a" to "aa", "b" to "bb"))
+        val map2 = convertToJson(mapOf("a" to "aa", "b" to "bb"))
+        assertEquals("Maps with String values don't match", map2, map1)
+    }
+
+    @Test
+    fun testMapWithListValuesConvert() {
+        val map = convertToJson(mapOf("numbers" to listOf(1, 2, 3), "booleans" to listOf(true, false)))
+        assertEquals("""{"numbers":[1,2,3],"booleans":[true,false]}""", map.stringify())
+    }
+
+    @Test
+    fun testMapWithListValuesEqual() {
+        val map1 = convertToJson(mapOf("numbers" to listOf(1, 2, 3), "booleans" to listOf(true, false)))
+        val map2 = convertToJson(mapOf("numbers" to listOf(1, 2, 3), "booleans" to listOf(true, false)))
+        assertEquals("Maps with List values don't match", map2, map1)
+    }
+
+    @Test
+    fun testMapWithEnumValuesConvert() {
+        val map = convertToJson(mapOf("eval1" to EvalType.TEST, "eval2" to EvalType.EXAM))
+        assertEquals("""{"eval1":"TEST","eval2":"EXAM"}""", map.stringify())
+    }
+
+    @Test
+    fun testMapWithEnumValuesEqual() {
+        val map1 = convertToJson(mapOf("eval1" to EvalType.TEST, "eval2" to EvalType.EXAM))
+        val map2 = convertToJson(mapOf("eval1" to EvalType.TEST, "eval2" to EvalType.EXAM))
+        assertEquals("Maps with Enum values don't match", map2, map1)
+    }
+
+    @Test
+    fun testMapWithNullValuesConvert() {
+        val map = convertToJson(mapOf("first" to null, "second" to null))
+        assertEquals("""{"first":null,"second":null}""", map.stringify())
+    }
+
+    @Test
+    fun testMapWithNullValuesEqual() {
+        val map1 = convertToJson(mapOf("first" to null, "second" to null))
+        val map2 = convertToJson(mapOf("first" to null, "second" to null))
+        assertEquals("Maps with null values don't match", map2, map1)
+    }
+
+    @Test
+    fun testMapWithCourseValuesConvert() {
+        val course1 = Course(
+            "PA", 6, listOf(
+                EvalItem("quizzes", 0.2, false, null),
+                EvalItem("project", 0.8, true, EvalType.PROJECT)
+            )
+        )
+        val course2 = Course(
+            "ICO", 6, listOf(
+                EvalItem("project", 1.0, true, EvalType.PROJECT)
+            )
+        )
+        val map = convertToJson(
+            mapOf(
+                "course1" to course1,
+                "course2" to course2
+            )
+        )
+        assertEquals(
+            """{"course1":{"name":"PA","credits":6,"evaluation":[{"name":"quizzes","percentage":0.2,"mandatory":false,"type":null},{"name":"project","percentage":0.8,"mandatory":true,"type":"PROJECT"}]},"course2":{"name":"ICO","credits":6,"evaluation":[{"name":"project","percentage":1.0,"mandatory":true,"type":"PROJECT"}]}}""",
+            map.stringify()
+        )
+    }
+
+    @Test
+    fun testMapWithCourseValuesEqual() {
+        val course1 = Course(
+            "PA", 6, listOf(
+                EvalItem("quizzes", 0.2, false, null),
+                EvalItem("project", 0.8, true, EvalType.PROJECT)
+            )
+        )
+        val course2 = Course(
+            "ICO", 6, listOf(
+                EvalItem("project", 1.0, true, EvalType.PROJECT)
+            )
+        )
+        val map1 = convertToJson(
+            mapOf(
+                "course1" to course1,
+                "course2" to course2
+            )
+        )
+        val map2 = convertToJson(
+            mapOf(
+                "course1" to course1,
+                "course2" to course2
+            )
+        )
+        assertEquals("Maps with Course data class values don't match", map2, map1)
+    }
+
+    @Test
+    fun testEmptyMapConvert() {
+        val emptyMap = convertToJson(emptyMap<String, Any>())
+        assertEquals("{}", emptyMap.stringify())
+    }
+
+    @Test
+    fun testEmptyMapEqualValue() {
+        val emptyMap1 = convertToJson(emptyMap<String, Any>())
+        val emptyMap2 = convertToJson(emptyMap<String, Any>())
+        assertEquals("Empty maps don't match", emptyMap2, emptyMap1)
     }
 
     @Test

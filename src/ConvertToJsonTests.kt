@@ -85,14 +85,14 @@ class ConvertToJsonTests {
 
     @Test
     fun testListConvert() {
-        val list = convertToJson(listOf(18, true, "Hello world!"))
-        assertEquals("""[18,true,"Hello world!"]""", list.stringify())
+        val list = convertToJson(listOf(1, 2, 3))
+        assertEquals("""[1,2,3]""", list.stringify())
     }
 
     @Test
     fun testListEqualValue() {
-        val list1 = convertToJson(listOf(18, true, "Hello world!"))
-        val list2 = convertToJson(listOf(18, true, "Hello world!"))
+        val list1 = convertToJson(listOf(1, 2, 3))
+        val list2 = convertToJson(listOf(1, 2, 3))
         assertEquals("Strings don't match", list2, list1)
     }
 

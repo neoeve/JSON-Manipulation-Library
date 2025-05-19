@@ -41,7 +41,7 @@ class GetJsonTests {
     @Test
     fun testPairEndpoint() {
         val jsonResponse = get("$url/pair")
-        assertEquals("""{"first":"um","second":"dois"}""", jsonResponse.replace(" ", ""))
+        assertEquals("""{"first":"um","second":"dois"}""", jsonResponse)
     }
 
     @Test

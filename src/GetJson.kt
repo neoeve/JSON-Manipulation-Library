@@ -138,6 +138,7 @@ class GetJson(vararg controllers: KClass<*>) {
             }
             val result = route.function.call(*args.toTypedArray())
             val response = convertToJson(result).stringify().toByteArray()
+            exchange.responseHeaders.add("Content-Type", "application/json; charset=utf-8")
             exchange.sendResponseHeaders(200, response.size.toLong())
             exchange.responseBody.write(response)
         } catch (e: Exception) {

@@ -199,7 +199,7 @@ class Controller {
      * @return Pair of strings.
      */
     @Mapping("pair")
-    fun obj(): Pair<String, String> = "um" to "dois"
+    fun obj(): Pair<String, String> = Pair("um", "dois")
 
     /**
      * Method mapped to the route '/api/path/{pathvar}'.

@@ -4,7 +4,7 @@
 
 This Kotlin library provides a functional and extensible model for representing and manipulating JSON data structures. It includes:
 
-- A typed JSON model with sealed classes.
+- A typed JSON model with an interface.
 - Functional operations like `map`, `filter`, and recursive `visitor` traversal.
 - Serialization to JSON strings.
 - Instantiation from Kotlin objects via reflection.

@@ -1,128 +1,71 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Diagram>
   <ID>JAVA</ID>
-  <OriginalElement>C:/Users/User/Desktop/Aulas/Mestrado/Programação Avançada/JSON-Manipulation-Library/src/ConvertToJson.kt</OriginalElement>
+  <OriginalElement>C:/Users/User/Desktop/Aulas/Mestrado/Programação Avançada/JSON-Manipulation-Library/src/GetJson.kt</OriginalElement>
   <nodes>
-    <node x="510.50812290792953" y="622.2060838506728">JsonNull</node>
-    <node x="895.6495790368997" y="353.9477840548807">JsonArray</node>
-    <node x="-94.89069417256184" y="181.91506264984866">GetJson</node>
-    <node x="949.5554142251722" y="603.3158883204201">JsonObject</node>
-    <node x="753.7844242479653" y="587.9837652729875">JsonValue</node>
-    <node x="353.4727670742471" y="231.32504767080223">Printer</node>
-    <node x="615.4774578330439" y="290.37093296391544">GetJsonKt</node>
-    <node x="509.7210275440009" y="794.8038815772287">ConvertToJsonKt</node>
-    <node x="218.4505244703878" y="625.9398613854621">JsonBoolean</node>
-    <node x="-97.25755047011212" y="516.8431227352376">JsonString</node>
-    <node x="-37.35446923548196" y="714.2783727864537">JsonNumber</node>
-    <node x="143.786984311852" y="403.1641743843401">JsonKt</node>
-    <node x="358.30567082034156" y="-13.807857190690243">Controller</node>
-    <node x="531.947211156224" y="415.9808479191736">StringPrinter</node>
+    <node x="165.3558384266019" y="614.1602693882528">JsonObject</node>
+    <node x="444.41757416400424" y="437.9123263862824">JsonNull</node>
+    <node x="668.4662746699745" y="442.3037285516344">JsonBoolean</node>
+    <node x="-244.6637342196973" y="397.54274002547675">JsonArray</node>
+    <node x="774.684332432336" y="276.14616595007277">JsonString</node>
+    <node x="26.91793147622849" y="226.92521066270064">JsonValue</node>
+    <node x="502.4799387549732" y="313.6401381460461">JsonNumber</node>
   </nodes>
   <notes />
   <edges>
     <edge source="JsonNull" target="JsonValue" relationship="REALIZATION">
-      <point x="-1.229079294944313E-4" y="-56.00008385067281" />
-      <point x="592.008" y="593.0" />
-      <point x="720.0" y="593.0" />
-      <point x="720.0" y="601.984" />
-      <point x="-65.00042424796527" y="2.347270125255818E-4" />
-    </edge>
-    <edge source="ConvertToJsonKt" target="JsonObject" relationship="CREATE">
-      <point x="75.77897245599911" y="-31.5" />
-      <point x="720.0" y="686.816" />
-      <point x="-203.0" y="15.000111679579959" />
+      <point x="4.258359957702851E-4" y="-31.50032638628244" />
+      <point x="525.918" y="408.0" />
+      <point x="91.918" y="408.0" />
+      <point x="6.852377151744804E-5" y="13.999789337299376" />
     </edge>
     <edge source="JsonArray" target="JsonValue" relationship="TO_MANY">
-      <point x="4.2096310039596574E-4" y="80.5002159451193" />
-      <point x="1052.65" y="585.816" />
-      <point x="917.0" y="585.816" />
-      <point x="917.0" y="601.984" />
-      <point x="64.99957575203473" y="2.347270125255818E-4" />
+      <point x="156.9997342196973" y="1.0816603918328838E-5" />
+      <point x="258.0" y="465.54275084208064" />
+      <point x="258.0" y="240.925" />
+      <point x="-64.99993147622848" y="-2.106627006241979E-4" />
     </edge>
     <edge source="JsonNumber" target="JsonValue" relationship="REALIZATION">
-      <point x="50.85446923548196" y="-44.00037278645368" />
-      <point x="110.5" y="593.0" />
-      <point x="720.0" y="593.0" />
-      <point x="720.0" y="601.984" />
-      <point x="-65.00042424796527" y="2.347270125255818E-4" />
-    </edge>
-    <edge source="JsonKt" target="StringPrinter" relationship="CREATE">
-      <point x="163.5" y="1.3166735348335123" />
-      <point x="-77.0" y="0.0" />
-    </edge>
-    <edge source="GetJsonKt" target="GetJson" relationship="CREATE">
-      <point x="0.0" y="-31.5" />
-      <point x="682.4774578330439" y="213.82504767080223" />
-      <point x="171.5" y="-48.09001497904643" />
-    </edge>
-    <edge source="JsonString" target="JsonValue" relationship="REALIZATION">
-      <point x="89.99955047011213" y="-6.17912273523757" />
-      <point x="126.287" y="554.664" />
-      <point x="126.287" y="593.0" />
-      <point x="720.0" y="593.0" />
-      <point x="720.0" y="601.984" />
-      <point x="-65.00042424796527" y="2.347270125255818E-4" />
-    </edge>
-    <edge source="ConvertToJsonKt" target="JsonBoolean" relationship="CREATE">
-      <point x="-134.5" y="15.0" />
-      <point x="316.9505244703878" y="841.3038815772287" />
-      <point x="0.0" y="44.0" />
-    </edge>
-    <edge source="ConvertToJsonKt" target="JsonString" relationship="CREATE">
-      <point x="-134.5" y="30.0" />
-      <point x="-54.85446923548196" y="856.3038815772287" />
-      <point x="-47.596918765369836" y="44.0" />
-    </edge>
-    <edge source="StringPrinter" target="Printer" relationship="REALIZATION">
-      <point x="-77.0" y="-15.0" />
-      <point x="488.286984311852" y="468.9808479191736" />
-      <point x="57.81421723760491" y="55.5" />
+      <point x="6.124502681359445E-5" y="31.49986185395386" />
+      <point x="599.48" y="408.0" />
+      <point x="91.918" y="408.0" />
+      <point x="6.852377151744804E-5" y="13.999789337299376" />
     </edge>
     <edge source="JsonBoolean" target="JsonValue" relationship="REALIZATION">
-      <point x="4.7552961223118473E-4" y="-43.999861385462054" />
-      <point x="316.951" y="593.0" />
-      <point x="720.0" y="593.0" />
-      <point x="720.0" y="601.984" />
-      <point x="-65.00042424796527" y="2.347270125255818E-4" />
+      <point x="-2.7466997448755137E-4" y="-31.499728551634405" />
+      <point x="766.966" y="408.0" />
+      <point x="91.918" y="408.0" />
+      <point x="6.852377151744804E-5" y="13.999789337299376" />
     </edge>
-    <edge source="ConvertToJsonKt" target="JsonNumber" relationship="CREATE">
-      <point x="0.0" y="-31.5" />
-      <point x="644.2210275440009" y="758.2783727864537" />
-      <point x="97.0" y="0.0" />
+    <edge source="JsonString" target="JsonValue" relationship="REALIZATION">
+      <point x="-3.3243233599478117E-4" y="31.499834049927216" />
+      <point x="864.684" y="408.0" />
+      <point x="91.918" y="408.0" />
+      <point x="6.852377151744804E-5" y="13.999789337299376" />
     </edge>
     <edge source="JsonObject" target="JsonValue" relationship="REALIZATION">
-      <point x="-203.00041422517222" y="1.116795799589454E-4" />
-      <point x="720.0" y="671.816" />
-      <point x="720.0" y="601.984" />
-      <point x="-65.00042424796527" y="2.347270125255818E-4" />
+      <point x="-203.0" y="0.0" />
+      <point x="106.918" y="670.1602693882528" />
+      <point x="15.000068523771517" y="14.0" />
     </edge>
     <edge source="JsonObject" target="JsonValue" relationship="TO_MANY">
-      <point x="-203.00041422517222" y="-18.815888320420072" />
-      <point x="917.0" y="653.0" />
-      <point x="917.0" y="601.984" />
-      <point x="64.99957575203473" y="2.347270125255818E-4" />
-    </edge>
-    <edge source="ConvertToJsonKt" target="JsonArray" relationship="CREATE">
-      <point x="134.5" y="0.0" />
-      <point x="1373.0554142251722" y="826.3038815772287" />
-      <point x="1373.0554142251722" y="434.4477840548807" />
-      <point x="157.0" y="0.0" />
-    </edge>
-    <edge source="ConvertToJsonKt" target="JsonNull" relationship="CREATE">
-      <point x="15.0" y="-31.5" />
-      <point x="67.21290463607136" y="56.0" />
+      <point x="0.0" y="-56.0" />
+      <point x="368.3558384266019" y="209.42521066270064" />
+      <point x="91.91793147622849" y="209.42521066270064" />
+      <point x="0.0" y="-14.0" />
     </edge>
     <edge source="JsonArray" target="JsonValue" relationship="REALIZATION">
-      <point x="-156.99957903689972" y="2.1594511929379223E-4" />
-      <point x="720.0" y="434.448" />
-      <point x="720.0" y="601.984" />
-      <point x="-65.00042424796527" y="2.347270125255818E-4" />
+      <point x="-2.65780302697749E-4" y="68.00001081660392" />
+      <point x="-87.66399999999999" y="408.0" />
+      <point x="91.918" y="408.0" />
+      <point x="6.852377151744804E-5" y="13.999789337299376" />
     </edge>
   </edges>
-  <settings layout="Hierarchic Compact" zoom="1.001121076233184" showDependencies="true" x="648.0" y="432.00000000000006" />
-  <SelectedNodes />
+  <settings layout="Hierarchic Compact" zoom="1.0" showDependencies="true" x="435.0" y="411.0" />
+  <SelectedNodes>
+    <node>JsonObject</node>
+  </SelectedNodes>
   <Categories>
-    <Category>Constructors</Category>
     <Category>Methods</Category>
     <Category>Properties</Category>
   </Categories>
